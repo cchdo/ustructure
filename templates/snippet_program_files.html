@@ -1,0 +1,5 @@
+<ul>
+  {% for data in files %}
+    <li><a href="{{ data.file.url }}">{{ data.filename }}</a></li>
+  {% endfor %}
+</ul>

@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Programs{% endblock %}
+{% block content %}
+<h1>Programs</h1>
+<ul>
+{% for program in programs %}
+  <li><a href="/program/{{program.id}}">{{ program.name }}</a></li>
+{% endfor %}
+</ul>
+{% endblock %}

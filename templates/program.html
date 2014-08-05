@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Data {{ program.name }}{% endblock %}
+{% block content %}
+  <h1>Microstructure Data for {{ program.name }}</h1>
+
+  <table>
+    <tr><th>Owner</th><td>{{ program.owner }}</td></tr>
+    <tr><th>PI</th><td>{{ program.pi }}</td></tr>
+    <tr><th>URL</th><td><a href="{{ program.url }}">{{ program.url }}</a></td></tr>
+    <tr><th>Dates</th><td>{{ program.dates }}</td></tr>
+    <tr><th>Port Out</th><td>{{ program.port_start }}</td></tr>
+    <tr><th>Port In</th><td>{{ program.port_end }}</td></tr>
+    <tr><th>Ship</th><td>{{ program.ship }}</td></tr>
+    <tr><th>Institutions</th><td>{{ program.institutions }}</td></tr>
+  </table>
+
+  <div class="dataset">
+    <h2>Dataset</h2>
+    {% if dataset %}
+      {% include "snippet_program_files.html" with files=dataset %}
+    {% else %}
+      <p>Standardized data not yet available.</p>
+    {% endif %}
+  </div>
+
+  {% if data_report %}
+    <div class="report">
+      <h2>Report</h2>
+      {% include "snippet_program_files.html" with files=data_report %}
+    </div>
+  {% endif %}
+
+  {% if data_intermediate or data_raw %}
+    <div class="dataset-as-received">
+      <h2>Data as received</h2>
+      {% include "snippet_titled_program_files.html" with title='Intermediate' files=data_intermediate %}
+      {% include "snippet_titled_program_files.html" with title='Raw' files=data_raw %}
+    </div>
+  {% endif %}
+
+{% endblock %}
