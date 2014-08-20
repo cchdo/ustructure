@@ -76,3 +76,10 @@ def import_dir(dname):
                               file=File(open(os.path.join(report_dir, fname))))
             pff.save()
 
+
+def import_data(program, path):
+    """Import a file to a program as standarad data.
+    
+    """
+    pff = ProgramFile(owner=program, ftype='d', file=File(open(path)))
+    pff.save()
