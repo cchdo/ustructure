@@ -9,12 +9,13 @@ class Program(models.Model):
     # owner is aka data originator
     owner = models.CharField(max_length=30)
     pi = models.CharField(max_length=30)
-    url = models.CharField(max_length=30)
+    url = models.CharField(max_length=2**11)
     dates = models.CharField(max_length=30)
     port_start = models.CharField(max_length=30)
     port_end = models.CharField(max_length=30)
     institutions = models.CharField(max_length=30)
     data_public = models.BooleanField(default=False)
+    data_policy = models.CharField(max_length=2**11, null=True)
 
     def __unicode__(self):
         return self.name

@@ -12,6 +12,9 @@
     <tr><th>Port In</th><td>{{ program.port_end }}</td></tr>
     <tr><th>Ship</th><td>{{ program.ship }}</td></tr>
     <tr><th>Institutions</th><td>{{ program.institutions }}</td></tr>
+    {% if program.data_policy %}
+      <tr><th>Data Policy</th><td><a href="{{ program.data_policy }}">{{ program.data_policy }}</a></td></tr>
+    {% endif %}
   </table>
 
   <div class="dataset">
