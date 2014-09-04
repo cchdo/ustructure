@@ -22,19 +22,17 @@ class Program(models.Model):
 
 
 class ProgramFile(models.Model):
-    owner = ForeignKey(Program)
     FTYPES = (
         ('d', 'data'),
         ('i', 'intermediate'),
         ('0', 'raw'),
         ('r', 'report'),
     )
-    ftype = models.CharField(max_length=1, choices=FTYPES)
-    file = FileField(upload_to='data')
 
-    @property
-    def filename(self):
-        return os.path.basename(self.file.name)
+    owner = ForeignKey(Program)
+    ftype = models.CharField(max_length=1, choices=FTYPES)
+    filename = models.CharField(max_length=512)
+    file = FileField(upload_to='data')
 
     def __unicode__(self):
         return u'{0} {1} {2} {3}'.format(self.id, self.owner, self.ftype,

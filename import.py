@@ -2,16 +2,146 @@
 
 import sys
 import os
+from json import load as json_load, dump as json_dump
+from contextlib import contextmanager
+from zipfile import ZipFile
+import tempfile
+
+import logging
+
+
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "microstructure.settings")
 from django.conf import settings
+import django
+django.setup()
 
-from microstructure.models import Program
+from django.core.files import File
+
+from netCDF4 import Dataset
+
+from microstructure.models import Program, ProgramFile
 from microstructure.importers import import_cruises_csv, import_dir, import_data
 
 
 def usage(prog):
     print 'Usage: {0} <csv file>'.format(prog)
+
+
+def _for_dirs(dirpath):
+    for dname in os.listdir(dirpath):
+        dpath = os.path.join(dirpath, dname)
+        if not os.path.isdir(dpath):
+            continue
+        if dname.startswith('.'):
+            continue
+        yield dname, dpath
+
+
+def import_directory(dirpath):
+    """Import a directory of directories of netCDF files.
+
+    Each directory should be named as the program id.
+
+    """
+    for dname, dpath in _for_dirs(dirpath):
+        program = Program.objects.get(id=dname)
+
+        for fname in os.listdir(dpath):
+            if not fname.endswith('.zip'):
+                continue
+            pfile = program.programfile_set.\
+                filter(ftype='d').\
+                filter(filename=fname).first()
+
+            path = os.path.join(dpath, fname)
+            if pfile:
+                pfile.file.delete(save=True)
+                pfile.file.save(fname, File(open(path)))
+                log.info(u'Updated {0}'.format(fname))
+            else:
+                import_data(program, path)
+                log.info(u'Imported {0}'.format(fname))
+
+
+def rejoin_as_csv(string):
+    return ','.join([x.strip() for x in string.split(',')])
+
+
+def update_hrp_cfgs(dirpath):
+    """Update the HRP configuration with data originators
+
+    """
+    for dname, dpath in _for_dirs(dirpath):
+        fpath = os.path.join(dpath, 'hrp.cfg')
+        try:
+            with open(fpath, 'r') as fff:
+                json = json_load(fff)
+        except ValueError:
+            log.error(u'Unable to read hrp.cfg for {0}'.format(dname))
+            continue
+
+        program = Program.objects.get(id=dname)
+        json['pi'] = rejoin_as_csv(program.pi)
+        json['originator'] = rejoin_as_csv(program.owner)
+
+        with open(fpath, 'w') as fff:
+            json_dump(
+                json, fff, sort_keys=True, indent=2, separators=(',', ': '))
+
+
+def clean_data_dir():
+    dirname = 'data'
+    root = os.path.join(settings.MEDIA_ROOT, dirname)
+    for fname in os.listdir(root):
+        fpath = '{0}/{1}'.format(dirname, fname)
+        if not ProgramFile.objects.filter(file=fpath).exists():
+            log.debug(u'unlinking {0}'.format(fname))
+            os.unlink(os.path.join(root, fname))
+
+
+def update_zip_ncs(zfile, hrp_cfg):
+    for info in zfile.infolist():
+        tmp = tempfile.NamedTemporaryFile()
+        tmp.write(zfile.read(info))
+        tmp.flush()
+        tmp.seek(0)
+        try:
+            # netcdf library wants to write its own files.
+            nc_file = Dataset(tmp.name, 'a')
+            try:
+                try:
+                    nc_file.pi = hrp_cfg['pi']
+                except KeyError:
+                    pass
+                try:
+                    nc_file.data_originator = hrp_cfg['originator']
+                except KeyError:
+                    pass
+            finally:
+                nc_file.close()
+        finally:
+            tmp.seek(0)
+            zfile.writestr(info, tmp.read())
+            tmp.close()
+
+
+def update_nczips(dirpath):
+    for dname, dpath in _for_dirs(dirpath):
+        fpath = os.path.join(dpath, 'hrp.cfg')
+        with open(fpath, 'r') as fff:
+            json = json_load(fff)
+
+        for fname in os.listdir(dpath):
+            if not fname.endswith('.zip'):
+                continue
+            fpath = os.path.join(dpath, fname)
+            with ZipFile(fpath, 'a') as zfile:
+                update_zip_ncs(zfile, json)
 
 
 def main(argv):
@@ -21,32 +151,20 @@ def main(argv):
 
     #import_cruises_csv(argv[1])
 
+    dirpath = argv[1]
+
     # import a directory containing directories of Programs. Each Program
     # directory must include a program_id file.
-    #path = argv[1]
-    #for dname in os.listdir(path):
-    #    import_dir(os.path.join(path, dname))
+    #for dname in os.listdir(dirpath):
+    #    import_dir(os.path.join(dirpath, dname))
 
+    import_directory(dirpath)
+    clean_data_dir()
 
-    # import a directory of directories of netCDF files. Each directory should
-    # be named as the program id.
-    dirpath = argv[1]
-    for dname in os.listdir(dirpath):
-        dpath = os.path.join(dirpath, dname)
-        if not os.path.isdir(dpath):
-            continue
-        if dname.startswith('.'):
-            continue
-        program = Program.objects.get(id=dname)
+    #update_hrp_cfgs(dirpath)
 
-        for fname in os.listdir(dpath):
-            if not fname.endswith('.zip'):
-                continue
-            pfiles = program.programfile_set.filter(ftype='d').all()
-            fnames = [p.filename for p in pfiles]
-            if fname in fnames:
-                continue
-            import_data(program, os.path.join(dpath, fname))
+    #update_nczips(dirpath)
+
     return 0
 
 

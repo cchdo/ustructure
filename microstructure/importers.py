@@ -56,6 +56,7 @@ def import_dir(dname):
     for fname in intermediates:
         pff = ProgramFile(owner=program,
                           ftype='i',
+                          filename=fname,
                           file=File(open(os.path.join(dname, fname))))
         pff.save()
 
@@ -65,6 +66,7 @@ def import_dir(dname):
         for fname in os.listdir(raw_dir):
             pff = ProgramFile(owner=program,
                               ftype='0',
+                              filename=fname,
                               file=File(open(os.path.join(raw_dir, fname))))
             pff.save()
 
@@ -73,6 +75,7 @@ def import_dir(dname):
         for fname in os.listdir(report_dir):
             pff = ProgramFile(owner=program,
                               ftype='r',
+                              filename=fname,
                               file=File(open(os.path.join(report_dir, fname))))
             pff.save()
 
@@ -81,5 +84,6 @@ def import_data(program, path):
     """Import a file to a program as standarad data.
     
     """
-    pff = ProgramFile(owner=program, ftype='d', file=File(open(path)))
+    pff = ProgramFile(owner=program, ftype='d', filename=os.path.basename(path),
+                      file=File(open(path)))
     pff.save()
