@@ -54,18 +54,9 @@ def import_directory(dirpath):
         for fname in os.listdir(dpath):
             if not fname.endswith('.zip'):
                 continue
-            pfile = program.programfile_set.\
-                filter(ftype='d').\
-                filter(filename=fname).first()
-
-            path = os.path.join(dpath, fname)
-            if pfile:
-                pfile.file.delete(save=True)
-                pfile.file.save(fname, File(open(path)))
-                log.info(u'Updated {0}'.format(fname))
             else:
+                path = os.path.join(dpath, fname)
                 import_data(program, path)
-                log.info(u'Imported {0}'.format(fname))
 
 
 def rejoin_as_csv(string):
@@ -155,11 +146,17 @@ def main(argv):
 
     # import a directory containing directories of Programs. Each Program
     # directory must include a program_id file.
-    #for dname in os.listdir(dirpath):
-    #    import_dir(os.path.join(dirpath, dname))
+    # ~/Documents/data/microstructure_from_amy_2014-06
+    for dname in os.listdir(dirpath):
+        if dname.startswith('.'):
+            continue
+        path = os.path.join(dirpath, dname)
+        if not os.path.isdir(path):
+            continue
+        import_dir(path)
 
-    import_directory(dirpath)
-    clean_data_dir()
+    #import_directory(dirpath)
+    #clean_data_dir()
 
     #update_hrp_cfgs(dirpath)
 
