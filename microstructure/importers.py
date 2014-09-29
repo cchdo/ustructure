@@ -81,7 +81,7 @@ def import_dir(dname):
 
 def tstore_find(tags, *other, **kwargs):
     filters = [TSQuery.tags_any('eq', tag) for tag in tags] + other
-    return tstore.query(*filters, **kwargs)
+    return tstore.query_data(*filters, **kwargs)
 
 
 def import_data(program, path):

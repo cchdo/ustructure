@@ -52,11 +52,11 @@ def program(request, pid):
                   TSQuery.tags_any('eq', 'program:{0}'.format(program.id))]
 
     data['dataset'] = map(TSData,
-        tstore.query(TSQuery.tags_any('eq', 'data_type:hrp'), TSQuery.tags_any('eq', 'format:data'), *query_base))
+        tstore.query_data(TSQuery.tags_any('eq', 'data_type:hrp'), TSQuery.tags_any('eq', 'format:data'), *query_base))
     data['data_intermediate'] = map(TSData,
-        tstore.query(TSQuery.tags_any('eq', 'data_type:hrp'), TSQuery.tags_any('eq', 'format:intermediate'), *query_base))
+        tstore.query_data(TSQuery.tags_any('eq', 'data_type:hrp'), TSQuery.tags_any('eq', 'format:intermediate'), *query_base))
     data['data_raw'] = map(TSData,
-        tstore.query(TSQuery.tags_any('eq', 'data_type:hrp'), TSQuery.tags_any('eq', 'format:raw'), *query_base))
+        tstore.query_data(TSQuery.tags_any('eq', 'data_type:hrp'), TSQuery.tags_any('eq', 'format:raw'), *query_base))
     data['data_report'] = map(TSData,
-        tstore.query(TSQuery.tags_any('eq', 'data_type:report'), *query_base))
+        tstore.query_data(TSQuery.tags_any('eq', 'data_type:report'), *query_base))
     return render_to_response("program.html", data)

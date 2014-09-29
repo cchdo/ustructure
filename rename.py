@@ -35,14 +35,14 @@ def main(argv):
         usage(argv[0])
         return 1
 
-    resp = ops.tstore.query(Query.tags_any('eq', u'website:microstructure'),
+    resp = ops.tstore.query_data(Query.tags_any('eq', u'website:microstructure'),
                             Query.tags_any('eq', u'data_type:hrp'),
                             Query.tags_any('eq', u'format:intermediate'))
     for data in resp:
         fname = data.fname.replace('_for_map', '_preprocessed')
         ops.tstore.edit(data.id, data.uri, fname, data.tags)
 
-    resp = ops.tstore.query(Query.tags_any('eq', u'website:microstructure'),
+    resp = ops.tstore.query_data(Query.tags_any('eq', u'website:microstructure'),
                             Query.tags_any('eq', u'data_type:hrp'),
                             Query.tags_any('eq', u'format:data'))
     for data in resp:
