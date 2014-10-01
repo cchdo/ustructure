@@ -24,6 +24,8 @@ from django.core.files import File
 
 from netCDF4 import Dataset
 
+from tagstore.client import TagStoreClient, Query
+
 from microstructure.models import Program, ProgramFile
 from microstructure.importers import import_cruises_csv, import_dir, import_data
 
@@ -42,7 +44,7 @@ def _for_dirs(dirpath):
         yield dname, dpath
 
 
-def import_directory(dirpath):
+def import_processed_directory(dirpath):
     """Import a directory of directories of netCDF files.
 
     Each directory should be named as the program id.
@@ -85,16 +87,6 @@ def update_hrp_cfgs(dirpath):
                 json, fff, sort_keys=True, indent=2, separators=(',', ': '))
 
 
-def clean_data_dir():
-    dirname = 'data'
-    root = os.path.join(settings.MEDIA_ROOT, dirname)
-    for fname in os.listdir(root):
-        fpath = '{0}/{1}'.format(dirname, fname)
-        if not ProgramFile.objects.filter(file=fpath).exists():
-            log.debug(u'unlinking {0}'.format(fname))
-            os.unlink(os.path.join(root, fname))
-
-
 def update_zip_ncs(zfile, hrp_cfg):
     for info in zfile.infolist():
         tmp = tempfile.NamedTemporaryFile()
@@ -135,6 +127,24 @@ def update_nczips(dirpath):
                 update_zip_ncs(zfile, json)
 
 
+def rename():
+    tstore = TagStoreClient('http://hdo.ucsd.edu:53000/api/v1')
+
+    resp = tstore.query_data(Query.tags_any('eq', u'website:microstructure'),
+                            Query.tags_any('eq', u'data_type:hrp'),
+                            Query.tags_any('eq', u'format:intermediate'))
+    for data in resp:
+        fname = data.fname.replace('_for_map', '_preprocessed')
+        tstore.edit(data.id, data.uri, fname, data.tags)
+
+    resp = tstore.query_data(Query.tags_any('eq', u'website:microstructure'),
+                            Query.tags_any('eq', u'data_type:hrp'),
+                            Query.tags_any('eq', u'format:data'))
+    for data in resp:
+        fname = data.fname.replace('_for_map', '')
+        tstore.edit(data.id, data.uri, fname, data.tags)
+
+
 def main(argv):
     if len(argv) < 1:
         usage(argv[0])
@@ -144,20 +154,20 @@ def main(argv):
 
     dirpath = argv[1]
 
-    # import a directory containing directories of Programs. Each Program
-    # directory must include a program_id file.
-    # ~/Documents/data/microstructure_from_amy_2014-06
-    for dname in os.listdir(dirpath):
-        if dname.startswith('.'):
-            continue
-        path = os.path.join(dirpath, dname)
-        if not os.path.isdir(path):
-            continue
+    ## import a directory containing directories of Programs. Each Program
+    ## directory must include a program_id file.
+    ## ~/Documents/data/microstructure_from_amy_2014-06
+    #for dname in os.listdir(dirpath):
+    #    if dname.startswith('.'):
+    #        continue
+    #    path = os.path.join(dirpath, dname)
+    #    if not os.path.isdir(path):
+    #        continue
+    #    import_dir(path)
 
-        import_dir(path)
-
-    #import_directory(dirpath)
-    #clean_data_dir()
+    # import the netCDF reformatted data
+    import_processed_directory(dirpath)
+    rename()
 
     #update_hrp_cfgs(dirpath)
 
