@@ -1,7 +1,10 @@
 import os
 from csv import reader as csv_reader
+from mmap import mmap
 import logging
+logging.basicConfig()
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 from django.core.files import File
 
@@ -48,7 +51,7 @@ def import_dir(dname):
     also be present for each directory.
     
     """
-    print dname
+    log.info(dname)
     intermediates = os.listdir(dname)
     intermediates.remove('raw')
     intermediates.remove('report')
@@ -57,47 +60,48 @@ def import_dir(dname):
     program_id = open(os.path.join(dname, 'program_id'), 'r').read().strip()
     program = Program.objects.get(id=program_id)
 
-    base_tags = ['website:microstructure', 'program:{0}'.format(program.id)]
-
     for fname in intermediates:
-        tags = base_tags + ['data_type:hrp', 'format:intermediate']
-        fobj = open(os.path.join(dname, fname))
-        tstore.create(fobj, fname, tags)
+        log.debug('intermediate {0}'.format(fname))
+        path = os.path.join(dname, fname)
+        import_file(program, path, data_type='hrp', format='intermediate')
 
     raw_dir = os.path.join(dname, 'raw')
     if os.path.isdir(raw_dir):
         for fname in os.listdir(raw_dir):
-            tags = base_tags + ['data_type:hrp', 'format:raw']
-            fobj = open(os.path.join(raw_dir, fname))
-            tstore.create(fobj, fname, tags)
+            log.debug('raw {0}'.format(fname))
+            path = os.path.join(raw_dir, fname)
+            import_file(program, path, data_type='hrp', format='raw')
 
     report_dir = os.path.join(dname, 'report')
     if os.path.isdir(report_dir):
         for fname in os.listdir(report_dir):
-            tags = base_tags + ['data_type:report']
-            fobj = open(os.path.join(report_dir, fname))
-            tstore.create(fobj, fname, tags)
-
+            log.debug('report {0}'.format(fname))
+            path = os.path.join(report_dir, fname)
+            import_file(program, path, data_type='report')
 
 def tstore_find(tags, *other, **kwargs):
-    filters = [TSQuery.tags_any('eq', tag) for tag in tags] + other
+    filters = [TSQuery.tags_any('eq', tag) for tag in tags] + list(other)
     return tstore.query_data(*filters, **kwargs)
+
+
+def import_file(program, path, **tags):
+    base_tags = ['website:microstructure', 'program:{0}'.format(program.id)]
+    tags = base_tags + [
+        '{0}:{1}'.format(key, value) for key, value in tags.items()]
+    fname = os.path.basename(path)
+
+    pfile = tstore_find(tags, ['fname', 'eq', fname], limit=1, single=True)
+    with open(path) as fobj:
+        if pfile:
+            tstore.edit(pfile.id, fobj, fname, tags)
+            log.info(u'Updated {0}'.format(fname))
+        else:
+            tstore.create(fobj, fname, tags)
+            log.info(u'Imported {0}'.format(fname))
 
 
 def import_data(program, path):
     """Import a file to a program as standarad data.
     
     """
-    fname = os.path.basename(path)
-
-    tags = ['website:microstructure', 'program:{0}'.format(program.id), 'data_type:hrp',  'format:data']
-    pfile = tstore_find(tags, ['fname', 'eq', fname], single=True)
-
-    fname = os.path.basename(path)
-    fobj = open(path)
-    if pfile:
-        tstore.edit(pfile.id, fobj, fname, tags)
-        log.info(u'Updated {0}'.format(fname))
-    else:
-        tstore.create(fobj, fname, tags)
-        log.info(u'Imported {0}'.format(fname))
+    import_file(program, path, data_type='hrp', format='data')

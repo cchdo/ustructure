@@ -153,6 +153,7 @@ def main(argv):
         path = os.path.join(dirpath, dname)
         if not os.path.isdir(path):
             continue
+
         import_dir(path)
 
     #import_directory(dirpath)

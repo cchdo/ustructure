@@ -13,7 +13,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.Deletemodel(
-            model_name='programfile',
-        ),
+        migrations.DeleteModel('programfile'),
     ]

@@ -90,4 +90,4 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 
-TAGSTORE_API_ENDPOINT = 'http://sui.ucsd.edu:5000/api/v1'
+TAGSTORE_API_ENDPOINT = 'http://hdo.ucsd.edu:53000/api/v1'
